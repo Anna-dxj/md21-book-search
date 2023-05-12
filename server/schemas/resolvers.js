@@ -1,11 +1,10 @@
 const {AuthenticationError} = require('apollo-server-express')
-const {Book, User} = require('../models');
+const {User} = require('../models');
 const {signToken} = require('../utils/auth')
 
 const resolvers = {
     Query: {
-        // TODO: me
-        me: async (_, _, context) => {
+        me: async (_, args, context) => {
             if (context.user) {
                 return User.findOne({_id: context.user._id});
             }
@@ -20,7 +19,7 @@ const resolvers = {
                 throw new AuthenticationError('No Profile found! Check that your email or password is correct.')
             }
 
-            const correctPw = await user.iscorrectPassword(password);
+            const correctPw = await user.isCorrectPassword(password);
 
             if (!correctPw) {
                 throw new AuthenticationError('No Profile found! Check that your email or password is correct.')
@@ -29,8 +28,8 @@ const resolvers = {
             const token = signToken(user);
             return {token, user};
         },
-        addUser: async (_, {username, email, password}) => {
-            const user = await User.create({username, email, password});
+        addUser: async (_, args) => {
+            const user = await User.create(args);
             const token = signToken(user);
 
             return {token, user};
@@ -69,3 +68,5 @@ const resolvers = {
         }
     }
 }
+
+module.exports = resolvers
