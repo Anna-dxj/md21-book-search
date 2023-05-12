@@ -32,9 +32,9 @@ const SignupForm = () => {
     }
 
     try {
-      const {data} = await addUser(
+      const {data} = await addUser({
         variable: {...userFormData}
-      );
+    });
 
       if (!data) {
         throw new Error('something went wrong!');
