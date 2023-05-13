@@ -1,72 +1,67 @@
-const {AuthenticationError} = require('apollo-server-express')
-const {User} = require('../models');
-const {signToken} = require('../utils/auth')
+const { AuthenticationError } = require('apollo-server-express');
+const { User } = require('../models');
+const { signToken } = require('../utils/auth');
 
 const resolvers = {
-    Query: {
-        me: async (_, args, context) => {
-            if (context.user) {
-                return User.findOne({_id: context.user._id});
-            }
-            throw new AuthenticationError('You need to be logged in!')
-        }
+  Query: {
+    me: async (parent, args, context) => {
+      // check if users exist
+      if (context.user) {
+        const userData = await User.findOne({ _id: context.user._id }).select(
+          '-__v -password'
+        );
+        return userData;
+      }
+      throw new AuthenticationError('Not logged in.');
     },
-    Mutation: {
-        login: async (_, {email, password}) => {
-            const user = await User.findOne({email});
+  },
 
-            if (!user) {
-                throw new AuthenticationError('No Profile found! Check that your email or password is correct.')
-            }
+  Mutation: {
+    login: async (parent, { email, password }) => {
+      const user = await User.findOne({ email });
+      // check if user exists with email and credentials
+      if (!user) {
+        throw new AuthenticationError('Incorrect credentials.');
+      }
+      const correctPassword = await user.isCorrectPassword(password);
 
-            const correctPw = await user.isCorrectPassword(password);
+      // check password
+      if (!correctPassword) {
+        throw new AuthenticationError('Incorrect credentials.');
+      }
 
-            if (!correctPw) {
-                throw new AuthenticationError('No Profile found! Check that your email or password is correct.')
-            }
+      const token = signToken(user);
+      return { token, user };
+    },
+    addUser: async (parent, args) => {
+      const user = await User.create(args);
+      const token = signToken(user);
 
-            const token = signToken(user);
-            return {token, user};
-        },
-        addUser: async (_, args) => {
-            const user = await User.create(args);
-            const token = signToken(user);
+      return { token, user };
+    },
+    saveBook: async (parent, { newBook }, context) => {
+      if (context.user) {
+        const updatedUser = await User.findByIdAndUpdate(
+          { _id: context.user._id },
+          { $push: { savedBooks: newBook } },
+          { new: true, runValidators: true }
+        );
+        return updatedUser;
+      }
+      throw new AuthenticationError('You need to be logged in!');
+    },
+    removeBook: async (parent, { bookId }, context) => {
+      if (context.user) {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $pull: { savedBooks: { bookId: bookId } } },
+          { new: true }
+        );
+        return updatedUser;
+      }
+      throw new AuthenticationError('You need to be logged in!');
+    },
+  },
+};
 
-            return {token, user};
-        },
-        saveBook: async (_, {userId, newBook}, context) => {
-            if (context.user) {
-                return User.findOneAndUpdate(
-                    {_id: userId},
-                    {
-                        $addToSet: {
-                            savedBooks: newBook
-                        }
-                    }, 
-                    {
-                        new: true,
-                        runValidators: true
-                    }
-
-                )
-            }
-        }, 
-        removeBook: async (_, { userId, bookId}, context) => {
-            if (context.user) {
-                return User.findOneAndUpdate(
-                    {_id: userId},
-                    {
-                        $pull: {
-                           savedBooks: {bookId: bookId} 
-                        }
-                    }, 
-                    {
-                        new: true
-                    }
-                )
-            }
-        }
-    }
-}
-
-module.exports = resolvers
+module.exports = resolvers;
