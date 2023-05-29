@@ -61,7 +61,3 @@ export const REMOVE_BOOK = gql`
         }
     }
 `
-//Login
-//adduser
-//savebook
-//removebook
