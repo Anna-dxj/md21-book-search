@@ -16,25 +16,26 @@ const SignupForm = () => {
     const { name, value } = event.target;
     setUserFormData({ ...userFormData, [name]: value });
   };
-
+  
   const handleFormSubmit = async (event) => {
     event.preventDefault();
 
     const form = event.currentTarget;
     if (form.checkValidity() === false) {
-      event.preventDefault();
+      // event.preventDefault();
       event.stopPropagation();
     }
-
+    
     try {
+      console.log({...userFormData});
       const {data} = await addUser({
-        variable: {...userFormData}
+        variables: {...userFormData}
     });
 
       if (!data) {
         throw new Error('something went wrong!');
       }
-
+      console.log(data);
       Auth.login(data.addUser.token);
     } catch (err) {
       console.error(err);
