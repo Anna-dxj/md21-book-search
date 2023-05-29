@@ -1,6 +1,5 @@
 const { gql } = require('apollo-server-express');
 
-// ！means that the field is non-nullable.
 const typeDefs = gql`
   type User {
     _id: ID
